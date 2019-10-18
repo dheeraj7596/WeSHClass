@@ -114,34 +114,33 @@ def proceed_level(x, sequences, wstc, args, pretrain_epochs, self_lr, decay, upd
             
             print("\n### Phase 1: vMF distribution fitting & pseudo document generation ###")
 
-            if args.pseudo == "bow":
-                print("Pseudo documents generation (Method: Bag-of-words)...")
-                seed_docs, seed_label = bow_pseudodocs(parent.children, expand_num, background_array, doc_length, len_avg,
-                                                        len_std, num_doc, interp_weight, vocabulary_inv, parent.embedding, save_dir)
-            elif args.pseudo == "lstm":
-                print("Pseudo documents generation (Method: LSTM language model)...")
-                lm = train_lstm(sequences, common_words, sent_length, f'./{dataset}/lm', embedding_matrix=class_tree.embedding)
-                
-                seed_docs, seed_label = lstm_pseudodocs(parent, expand_num, doc_length, len_avg, sent_length, len_std, num_doc, 
-                                                        interp_weight, vocabulary_inv, lm, common_words, save_dir)
-            
-            print("Finished pseudo documents generation.")
-            num_real_doc = len(seed_docs) / 5
-
-            if sup_source == 'docs':
-                real_seed_docs, real_seed_label = augment(x, parent.children, num_real_doc)
-                print(f'Labeled docs {len(real_seed_docs)} + Pseudo docs {len(seed_docs)}')
-                seed_docs = np.concatenate((seed_docs, real_seed_docs), axis=0)
-                seed_label = np.concatenate((seed_label, real_seed_label), axis=0)
-
-            perm = np.random.permutation(len(seed_label))
-            seed_docs = seed_docs[perm]
-            seed_label = seed_label[perm]
-
-            print('\n### Phase 2: pre-training with pseudo documents ###')
-            print(f'Pretraining node {parent.name}')
-
-            wstc.pretrain(x=seed_docs, pretrain_labels=seed_label, model=parent.model,
+            # if args.pseudo == "bow":
+            #     print("Pseudo documents generation (Method: Bag-of-words)...")
+            #     seed_docs, seed_label = bow_pseudodocs(parent.children, expand_num, background_array, doc_length, len_avg,
+            #                                             len_std, num_doc, interp_weight, vocabulary_inv, parent.embedding, save_dir)
+            # elif args.pseudo == "lstm":
+            #     print("Pseudo documents generation (Method: LSTM language model)...")
+            #     lm = train_lstm(sequences, common_words, sent_length, f'./{dataset}/lm', embedding_matrix=class_tree.embedding)
+            #
+            #     seed_docs, seed_label = lstm_pseudodocs(parent, expand_num, doc_length, len_avg, sent_length, len_std, num_doc,
+            #                                             interp_weight, vocabulary_inv, lm, common_words, save_dir)
+            #
+            # print("Finished pseudo documents generation.")
+            # num_real_doc = len(seed_docs) / 5
+            #
+            # if sup_source == 'docs':
+            #     real_seed_docs, real_seed_label = augment(x, parent.children, num_real_doc)
+            #     print(f'Labeled docs {len(real_seed_docs)} + Pseudo docs {len(seed_docs)}')
+            #     seed_docs = np.concatenate((seed_docs, real_seed_docs), axis=0)
+            #     seed_label = np.concatenate((seed_label, real_seed_label), axis=0)
+            #
+            # perm = np.random.permutation(len(seed_label))
+            # seed_docs = seed_docs[perm]
+            # seed_label = seed_label[perm]
+            #
+            # print('\n### Phase 2: pre-training with pseudo documents ###')
+            # print(f'Pretraining node {parent.name}')
+            wstc.pretrain(x=np.array(parent.data), pretrain_labels=np.array(parent.y), model=parent.model,
                         optimizer=SGD(lr=0.1, momentum=0.9),
                         epochs=pretrain_epochs, batch_size=batch_size,
                         save_dir=save_dir, suffix=parent.name)

@@ -6,10 +6,11 @@ import os
 from models import WSTC
 from load_data import load_dataset
 from utils import proceed_level, write_output
-
+import os
 
 if __name__ == "__main__":
 
+    os.chdir("/Users/dheerajmekala/Work/Hier/WeSHClass")
     import argparse
 
     parser = argparse.ArgumentParser(description='main',
@@ -95,7 +96,7 @@ if __name__ == "__main__":
         pretrain_epochs = args.pretrain_epochs
     
     x, y, sequences, class_tree, word_counts, vocabulary, vocabulary_inv_list, len_avg, len_std, perm = \
-        load_dataset(args.dataset, sup_source=args.sup_source, common_words=common_words, 
+        load_dataset(args, args.dataset, sup_source=args.sup_source, common_words=common_words,
                     truncate_doc_len=max_doc_length, truncate_sent_len=max_sent_length, with_eval=args.with_eval)
     
     assert max_doc_length > len_avg, f"max_doc_length should be greater than {len_avg}"

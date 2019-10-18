@@ -1,5 +1,3 @@
-
-
 class ClassNode(object):
     def __init__(self, name, parent, label=None):
         self.name = name
@@ -12,6 +10,8 @@ class ClassNode(object):
         self.model = None
         self.embedding = None
         self.sup_idx = []
+        self.data = []
+        self.y = []
 
     def add_child(self, node):
         self.children.append(node)
@@ -38,7 +38,7 @@ class ClassNode(object):
         return leaves
 
     def find_ancestors(self):
-        if self.label == -1 or self.parent.label == -1 : # self or parent is ROOT
+        if self.label == -1 or self.parent.label == -1:  # self or parent is ROOT
             return []
         return [self.parent] + self.parent.find_ancestors()
 
@@ -75,7 +75,7 @@ class ClassNode(object):
             if child.find(name):
                 return child.find(name)
         return None
-    
+
     def find_add_child(self, name, node):
         target = self.find(name)
         assert target
@@ -100,13 +100,18 @@ class ClassNode(object):
         assert target
         return target.get_full_label()
 
+    def label2nodes(self, label):
+        node = self.find(int(label))
+        ans = [node]
+        return ans + node.find_ancestors()
+
     def find_at_level(self, level):
         targets = []
         if level == 0:
             targets.append(self)
         else:
             for child in self.children:
-                targets += child.find_at_level(level-1)
+                targets += child.find_at_level(level - 1)
         return targets
 
     def siblings_at_level(self, level):
@@ -115,8 +120,8 @@ class ClassNode(object):
         offset = 0
         for node in parent_nodes:
             num_children = len(node.children)
-            siblings = range(offset, offset+num_children)
-            for i in range(offset, offset+num_children):
+            siblings = range(offset, offset + num_children)
+            for i in range(offset, offset + num_children):
                 siblings_map[i] = siblings
             offset += num_children
         return siblings_map
@@ -150,4 +155,3 @@ class ClassNode(object):
         for child in self.children:
             print_string += child.visualize_nodes()
         return print_string
-    

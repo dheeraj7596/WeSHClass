@@ -14,7 +14,7 @@ from tree import ClassNode
 
 
 def read_file(dataset, with_eval="All"):
-    class_tree = ClassNode("ROOT",None,-1)
+    class_tree = ClassNode("ROOT", None, -1)
     hier_file = open(f"./{dataset}/label_hier.txt", 'r')
     contents = hier_file.readlines()
     cnt = 0
@@ -27,10 +27,10 @@ def read_file(dataset, with_eval="All"):
             parent_node = class_tree.find(parent)
             class_tree.find_add_child(parent, ClassNode(child, parent_node))
             cnt += 1
-    
+
     # assign labels to classes in class tree
     offset = 0
-    for i in range(1, class_tree.get_height()+1):
+    for i in range(1, class_tree.get_height() + 1):
         nodes = class_tree.find_at_level(i)
         for node in nodes:
             node.label = offset
@@ -39,7 +39,7 @@ def read_file(dataset, with_eval="All"):
     n_classes = class_tree.get_size() - 1
     print(f'Total number of classes: {n_classes}')
     print(class_tree.visualize_tree())
-    
+
     infile = open(f'./{dataset}/dataset.txt', mode='r', encoding='utf-8')
     data = infile.readlines()
     if with_eval == "All":
@@ -71,6 +71,36 @@ def read_file(dataset, with_eval="All"):
     else:
         y = None
     return data, y, class_tree
+
+
+def make_label_to_indices(coordinates):
+    label_to_indices = {}
+    for coord in coordinates:
+        if coord[1] in label_to_indices:
+            label_to_indices[coord[1]].append(coord[0])
+        else:
+            label_to_indices[coord[1]] = [coord[0]]
+    return label_to_indices
+
+def assign_data_to_nodes(args, x, y, class_tree):
+    result = np.where(y == 1)
+    coordinates = list(zip(result[0], result[1]))
+    label_to_indices = make_label_to_indices(coordinates)
+
+    max_level = class_tree.get_height()
+    for level in range(max_level):
+        parents = class_tree.find_at_level(level)
+        for parent_node in parents:
+            relevant_nodes = parent_node.children
+            n_classes = len(relevant_nodes)
+            for i in range(n_classes):
+                label = args.alpha / n_classes * np.ones(n_classes)
+                label[i] += 1 - args.alpha
+                child_label = relevant_nodes[i].label
+                indices = label_to_indices[child_label]
+                parent_node.data.extend(x[(indices)])
+                for temp in range(len(indices)):
+                    parent_node.y.append(label)
 
 
 def clean_str(string):
@@ -116,10 +146,10 @@ def pad_docs(sentences, pad_len=None, padding_word="<PAD/>"):
 def build_vocab(sentences, common_words):
     # Build vocabulary
     word_counts = Counter(itertools.chain(*sentences))
-    
+
     # Mapping from index to word
     vocabulary_inv = [x[0] for x in word_counts.most_common()]
-    
+
     # Mapping from word to index
     vocabulary = {x: i for i, x in enumerate(vocabulary_inv)}
     trim_vocabulary = {}
@@ -136,7 +166,7 @@ def build_sequence(flat_data, vocabulary, truncate_len):
     sequences = []
     for seq in flat_data:
         for i in range(1, len(seq)):
-            sequence = seq[:i+1]
+            sequence = seq[:i + 1]
             sequences.append(sequence)
     sequences = pad_sequences(sequences, maxlen=truncate_len, padding='pre')
     print(f'Sequences shape: {sequences.shape}')
@@ -150,7 +180,7 @@ def build_input_data(sentences, vocabulary):
 
 def extract_keywords(data_path, class_tree, class_type, vocabulary, num_seed_doc, num_keywords, data, perm):
     data = [' '.join(line) for line in data]
-    tfidf = TfidfVectorizer(norm='l2', sublinear_tf=True, max_df=0.2, stop_words='english', 
+    tfidf = TfidfVectorizer(norm='l2', sublinear_tf=True, max_df=0.2, stop_words='english',
                             token_pattern=r'(?u)\b\w[\w-]*\w\b', max_features=10000)
     print("\n### Supervision type: Labeled documents ###")
 
@@ -168,7 +198,7 @@ def extract_keywords(data_path, class_tree, class_type, vocabulary, num_seed_doc
 
     print("Extracted keywords for each class: ")
     max_level = class_tree.get_height()
-    for level in reversed(range(1, max_level+1)):
+    for level in reversed(range(1, max_level + 1)):
         nodes = class_tree.find_at_level(level)
         all_idx = []
         for node in nodes:
@@ -216,17 +246,18 @@ def load_keywords(data_path, class_tree):
     print("\n### Supervision type: Class-related Keywords ###")
     infile = open(join(data_path, file_name), mode='r', encoding='utf-8')
     text = infile.readlines()
-    
+
     for line in text:
         line = line.split('\n')[0]
         class_name, keywords = line.split('\t')
         keywords = keywords.split()
         class_tree.find_add_keywords(class_name, keywords)
-    
+
     class_tree.aggregate_keywords()
 
 
-def load_dataset(dataset_name, sup_source, num_seed_doc=10, common_words=10000, truncate_doc_len=None, truncate_sent_len=None, with_eval=True):
+def load_dataset(args, dataset_name, sup_source, num_seed_doc=10, common_words=10000, truncate_doc_len=None,
+                 truncate_sent_len=None, with_eval=True):
     data_path = './' + dataset_name
     data, y, class_tree = read_file(dataset_name, with_eval=with_eval)
 
@@ -246,15 +277,17 @@ def load_dataset(dataset_name, sup_source, num_seed_doc=10, common_words=10000, 
     print(f'Document length std: {len_std} (words)')
 
     if truncate_doc_len is None:
-        truncate_doc_len = min(int(len_avg + 3*len_std), len_max)
+        truncate_doc_len = min(int(len_avg + 3 * len_std), len_max)
     print(f"Defined maximum document length: {truncate_doc_len} (words)")
-    print(f'Fraction of truncated documents: {sum(tmp > truncate_doc_len for tmp in tmp_list)/len(tmp_list)}')
-    
+    print(f'Fraction of truncated documents: {sum(tmp > truncate_doc_len for tmp in tmp_list) / len(tmp_list)}')
+
     sequences_padded = pad_docs(trun_data, pad_len=truncate_doc_len)
     word_counts, vocabulary, vocabulary_inv, trim_vocabulary = build_vocab(sequences_padded, common_words)
     print(f"Vocabulary Size: {len(vocabulary_inv):d}")
     x = build_input_data(sequences_padded, vocabulary)
     x = np.array(x)
+
+    assign_data_to_nodes(args, x, y, class_tree)
 
     # Prepare sentences for training LSTM language model
     trun_data = [" ".join(doc) for doc in trun_data]
@@ -266,12 +299,12 @@ def load_dataset(dataset_name, sup_source, num_seed_doc=10, common_words=10000, 
     avg_sent_len = np.average(tmp_list)
     std_sent_len = np.std(tmp_list)
     if truncate_sent_len is None:
-        truncate_sent_len = min(int(avg_sent_len + 3*std_sent_len), max_sent_len)
+        truncate_sent_len = min(int(avg_sent_len + 3 * std_sent_len), max_sent_len)
     print("\n### Dataset statistics - Sentences: ###")
     print(f'Sentence max length: {max_sent_len} (words)')
     print(f'Sentence average length: {avg_sent_len} (words)')
     print(f"Defined maximum sentence length: {truncate_sent_len} (words)")
-    print(f'Fraction of truncated sentences: {sum(tmp > truncate_sent_len for tmp in tmp_list)/len(tmp_list)}')
+    print(f'Fraction of truncated sentences: {sum(tmp > truncate_sent_len for tmp in tmp_list) / len(tmp_list)}')
     flat_data = [s.split(" ") for s in flat_data]
     sequences = build_sequence(flat_data, trim_vocabulary, truncate_sent_len)
 

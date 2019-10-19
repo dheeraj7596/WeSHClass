@@ -289,7 +289,7 @@ class WSTC(object):
             update_interval=100, save_dir=None, save_suffix=''):
         model = self.model[level]
         print(f'Update interval: {update_interval}')
-        
+
         cur_idx = np.array([idx for idx in range(x.shape[0]) if idx not in self.block_label])
         x = x[cur_idx]
         y = self.y
@@ -327,10 +327,10 @@ class WSTC(object):
         mapped_sup_dict_level = {}
         if len(self.sup_dict) > 0:
             sup_dict_level = self.extract_label(self.sup_dict, level+1)
-            inv_cur_idx = {i:idx for idx, i in enumerate(cur_idx)}        
+            inv_cur_idx = {i:idx for idx, i in enumerate(cur_idx)}
             for key in sup_dict_level:
                 mapped_sup_dict_level[inv_cur_idx[key]] = sup_dict_level[key]
-    
+
         for ite in range(int(maxiter)):
             try:
                 if ite % update_interval == 0:
@@ -372,7 +372,7 @@ class WSTC(object):
                             logdict = dict(iter=ite, f1_macro=f1_macro, f1_micro=f1_micro)
                             logwriters[-1].writerow(logdict)
                             print(f'f1_macro = {f1_macro}, f1_micro = {f1_micro} @ all classes')
-                        
+
                     nonblock = np.array(list(set(range(x.shape[0])) - set(block_idx)))
                     x_nonblock = x[nonblock]
                     p_nonblock = self.target_distribution(q, nonblock, mapped_sup_dict_level, power)
@@ -385,7 +385,7 @@ class WSTC(object):
                         y_pred_last = np.copy(y_pred)
                         delta_label = len(change_idx)
                         print(f'Fraction of documents with label changes: {np.round(delta_label/y_pred.shape[0]*100, 3)} %')
-                        
+
                         if delta_label/y_pred.shape[0] < tol/100:
                             print(f'\nFraction: {np.round(delta_label / y_pred.shape[0] * 100, 3)} % < tol: {tol} %')
                             print('Reached tolerance threshold. Self-training terminated.')

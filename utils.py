@@ -8,6 +8,8 @@ from keras.callbacks import ModelCheckpoint
 import pickle
 from sklearn.metrics import f1_score
 from time import time
+from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.metrics import classification_report
 
 
 def train_lstm(sequences, vocab_sz, truncate_len, save_path, word_embedding_dim=100, hidden_dim=100, embedding_matrix=None):
@@ -181,3 +183,26 @@ def write_output(y_pred, perm, class_tree, write_path):
                 out_str = class_tree.name
             f.write(out_str + '\n')
     print("Classification results are written in {}".format(os.path.join(write_path, 'out.txt')))
+
+
+def compute_metrics(y_pred, y_true):
+    actual_pred = np.zeros(y_pred.shape)
+
+    result = np.where(y_pred == 1)
+    coordinates = list(zip(result[0], result[1]))
+
+    prev = coordinates[0]
+    for curr in coordinates[1:]:
+        if curr[0] != prev[0]:
+            actual_pred[prev] = 1
+        prev = curr
+
+    actual_pred[coordinates[-1]] = 1
+    pred_labels = np.argmax(actual_pred, axis=-1)
+    true_labels = np.argmax(y_true, axis=-1)
+    print("****************** CLASSIFICATION REPORT ********************")
+    print(classification_report(true_labels, pred_labels))
+    print("****************** F1 SCORE ********************")
+    print("Micro: ", str(f1_score(true_labels, pred_labels, average="micro")))
+    print("Macro: ", str(f1_score(true_labels, pred_labels, average="macro")))
+

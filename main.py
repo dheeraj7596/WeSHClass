@@ -5,7 +5,7 @@ import os
 # os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from models import WSTC
 from load_data import load_dataset
-from utils import proceed_level, write_output
+from utils import proceed_level, write_output, compute_metrics
 import os
 
 if __name__ == "__main__":
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     x, y, sequences, class_tree, word_counts, vocabulary, vocabulary_inv_list, len_avg, len_std, perm = \
         load_dataset(args, args.dataset, sup_source=args.sup_source, common_words=common_words,
                     truncate_doc_len=max_doc_length, truncate_sent_len=max_sent_length, with_eval=args.with_eval)
-    
+
     assert max_doc_length > len_avg, f"max_doc_length should be greater than {len_avg}"
 
     np.random.seed(1234)
@@ -126,3 +126,4 @@ if __name__ == "__main__":
                                 delta, class_tree, level, expand_num, background_array, max_doc_length, max_sent_length,
                                 len_avg, len_std, beta, alpha, vocabulary_inv, common_words)
     write_output(y_pred, perm, class_tree, './' + args.dataset)
+    compute_metrics(y_pred, y)
